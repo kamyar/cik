@@ -8,8 +8,8 @@ USAGE:
 	cik.py (-h | --help)
 	cik.py --version
 Options:
-  -h --help  	Show this screen.
-  --version  		Show version.
+  -h --help  		Show this screen.
+  --version   		Show version.
 """
 cik_version = 0.3
 from docopt import docopt
@@ -65,11 +65,12 @@ def reset():
 
 def send(recv, amount):
 	"Sends amount to recv(addr) from local wallet address"
-	res = subprocess.Popen("node ./nodeapp/app.js %s %s %s %d"%(W_ADDR, W_WIF_UNCOMP, recv, int(amount)), shell=True, stdout=subprocess.PIPE).stdout.read()
+	process = subprocess.Popen("nodejs nodeapp/app.js %s %s %s %d"%(W_ADDR, W_WIF_UNCOMP, recv, int(amount)), shell=True, stdout=subprocess.PIPE)	#.stdout.read()
 	#TODO: call [module] to construct, sign and send transaction message
-	print "node ./nodeapp/app.js %s %s %s %d"%(W_ADDR, W_WIF_UNCOMP, recv, int(amount))
-	print res
-	return
+	# print "node ./nodeapp/app.js %s %s %s %d"%(W_ADDR, W_WIF_UNCOMP, recv, int(amount))
+	# print res
+	stdoutdata, stderrdata = process.communicate()
+	print process.returncode
 
 def generate():
 	wallet = subprocess.Popen("ku create -n XTN -w -j", shell=True, stdout=subprocess.PIPE).stdout.read()
@@ -82,11 +83,11 @@ if __name__ == '__main__':
 	#TODO Read cnf file
 	arguments = docopt(__doc__,help=True, version=cik_version)
 	config = ConfigParser.ConfigParser()
-	config.read('conf.cfg')
+	config.read('./conf.cfg')
 	W_ADDR = config.get('user_info', 'wallet.address')
 	W_PWD = config.get('user_info', 'wallet.password')
 	W_WIF_UNCOMP = config.get('user_info', 'wallet.wif')
-	print(arguments)
+	# print(arguments)
 	if arguments['init']:
 		if arguments['--new']:
 			generate()
@@ -96,7 +97,11 @@ if __name__ == '__main__':
 			init(raw_input("Your wallet address:"), getpass.getpass("Your wallet password:"), config)
 	elif arguments['send']:
 		if arguments['--recv'] and arguments['--amount']:
-			send(arguments['--recv'],arguments['--amount'])
+			result = send(arguments['--recv'],arguments['--amount'])
+			if result:
+				print "Transaction Successful, Pending Verification..."
+			else:
+				print "Transaction Failed, Please check wallet balance and receiver address."
 		else:
 			send(raw_input(" Please specify the receiver:\t"), raw_input("How much do you want to send:\t"))
 	elif arguments['status']:
